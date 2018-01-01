@@ -1,6 +1,6 @@
 ---
 layout: post
-title: TEST AHHHH
+title: Test Post #1
 ---
 
-Does this work?
+Apparently I need to use Markdown for this stuff too.
