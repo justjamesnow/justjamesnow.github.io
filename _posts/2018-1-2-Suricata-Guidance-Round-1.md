@@ -34,7 +34,7 @@ If neither of the above are applicable, a DNS signature would be the last resort
 <br/>
 ### Dissection 2: DNS Lookups
 The goal of a DNS lookup is to identify known malicious and/or suspicious domains that we do not want our systems communicating with or alternatively, they can be used to fill in timeline gaps on an infection chain timeline.  For example, more and more malware is using external services to identify the public IP address used by an infected system.  Creating a DNS lookup signature for these services will result in an alert prior to the main trojan signature alert.  Crafting DNS signatures is a relatively easy task but there are a couple of rules you must follow depending on the content you are matching against.
-
+<br/>
 #### Snort Example
 ```alert udp $HOME_NET any -> any 53 (msg:"ET TROJAN Gootkit Domain (sslsecure256 .com in DNS Lookup)"; content:"|01|"; offset:2; depth:1; content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8; content:"|0c|sslsecure256|03|com|00|"; fast_pattern; distance:0; nocase; classtype:trojan-activity; sid:90000000; rev:1;)```
 
@@ -50,7 +50,7 @@ Shown above is a Snort DNS signature for a domain used in Gootkit campaigns.  In
 
 Here we are trying to match 0x01 at position 2 (third byte) which indicates that this is a standard query. Positional modifiers are attached after the content has been defined and in this case, we jump 2 bytes from the beginning of the packet data \(offset:2;) to check whether the 3rd byte (depth:1;) matches 0x01 (content:"\|01\|";).  The depth modifier ensures that the signature only checks the following byte after our jump.  If we were writing a signature where 0x01 can be in any of the 10 bytes that follow our jump, we'd write depth:10; however in this case, DNS packets follow the same structure making this a reliable method of identifying a DNS standard query.
 <br/>
-<br/>
+
 ```content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8;```
 
 Here, we are attempting to detect the flags within a DNS packet.  There are 4 flags, each consisting of 2 bytes and they are Questions, Answer Resource Records (RRs), Authority RRs, and Additional RRs.  Since we have identified this as a standard query, Answer RRs, Authority RRs, and Additional RRs are irrelevant and only apply to query response packets resulting in their bytes remaining static (\|00 00 00 00 00 00\|).  'Questions' is the number of records (or domains, if you like) we are querying.  While this implies that we can query in multiples, such as an A record and an AAAA record in a single query, this is not the case, meaning our content match of \|00 01\| is very reliable.
@@ -67,7 +67,7 @@ Time for the juicy and relatively simple part.  We now want to state which domai
 Since the juicy/unique part of our DNS signature is the domain that we are looking to detect, we will add our fast\_pattern match here.  Fast\_pattern is used to improve the efficiency of a rule and should always be applied to your most unique piece of content.  If you do not specify a fast\_pattern in Suricata, the engine will specify a fast\_pattern according to its [Multi Pattern Matcher algorithm](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_fast\_pattern_Determination_Explained).
 
 The 'distance' positional modifier was briefly explained previously but it is important to note that 'distance:0;' does not translate to "match immediately after the previous match".  Setting distance to zero means that the content match can appear anywhere within the rest of the packet, relative to the previous content match.
-
+<br/>
 #### Suricata Example
 In the section above, I mentioned that Suricata supports 'dns' as a protocol so we will be working from signatures that follow this format, as shown below in the first signature that we will be dissecting.
 
@@ -91,7 +91,8 @@ Going back to our example signature, isdataat:!1,relative; means we are making s
 
 ![memes3]({{ site.url }}/images/dns3.png)
 
-
+<br/>
+<br/>
 ### Dissection 3: HTTP Botnet Check-in (Suricata v4.0 only)
 Signature 1
 `alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Tinba Checkin 2"; flow:established,to_server; content:"POST"; http_method; content:"/"; http_uri; isdataat:!1,relative; content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4; byte_extract:2,2,Tinba.Pivot,relative; byte_test:2,=,Tinba.Pivot,2,relative; byte_test:2,!=,Tinba.Pivot,5,relative; http_protocol; content:"HTTP/1.0"; http_content_len; byte_test:0,>,99,0,string,dec; http_header_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast_pattern; content:!"User-Agent"; content:!"Accept"; flowbits:set,ET.Tinba.Checkin; reference:md5,7af6d8de2759b8cc534ffd72fdd8a654; classtype:trojan-activity; sid:2020418; rev:5; metadata:created_at 2015_02_12, updated_at 2015_02_12;)`
@@ -225,7 +226,9 @@ Immediately, we can see that this is watching for a packet from the server \($EX
 
 file\_data is another sticky buffer and is the equivalent of _http\_client\_body_ except this is used on traffic in the opposite direction.  For client -> server, _http\_client\_body_ is used and for server -> client, file\_data is used.  In this case, the first 4 bytes in the server response must contain \|64 b4 dc a4\|.
 
-If you have stuck around for long enough to read up until this point, thank you, this post admittedly ending up being much longer than I intended.  I'll close out with... if you want to give writing your own signatures a go, I'd be happy to review them and provide feedback to you.  
+<br/>
+<br/>
+If you have stuck around for long enough to read up until this point, thank you for reading, this post admittedly ending up being much longer than I intended.  I'll close out with... if you want to give writing your own signatures a go, I'd be happy to review them and provide feedback to you.  
 
 For some useful Suricata tools, tips, and tricks, head over to the [Emerging Threats Github](https://github.com/EmergingThreats).
 
