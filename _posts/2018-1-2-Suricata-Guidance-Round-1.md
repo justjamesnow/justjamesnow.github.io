@@ -155,7 +155,7 @@ Our byte\_test keyword here includes the use of an operator.  You can find the t
 * \>=
 * \=
 * &
-* ^
+* Bitwise XOR^
 
 Now that we have our bytes extracted, we can test them!  Our use of byte\_test takes the following inputs:
 
