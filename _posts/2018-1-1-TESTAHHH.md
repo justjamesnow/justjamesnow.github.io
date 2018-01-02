@@ -14,13 +14,13 @@ Documentation for Suricata is rather plentiful and it is recommended that you st
 
 
 ### Dissection 1: SSL/TLS Certificate Signatures
->alert tls $EXTERNAL\_NET 443 -> $HOME\_NET any (msg:"ET TROJAN ABUSE.CH SSL Fingerprint Blacklist Malicious SSL Certificate Detected (ZeusPanda MITM)"; flow:established,from_server; content:"|55 04 03|"; content:"|10|115f697a1698.bid"; distance:1; within:18; reference:url,sslbl.abuse.ch; classtype:trojan-activity; sid:2024686; rev:2;)
+```alert tls $EXTERNAL\_NET 443 -> $HOME\_NET any (msg:"ET TROJAN ABUSE.CH SSL Fingerprint Blacklist Malicious SSL Certificate Detected (ZeusPanda MITM)"; flow:established,from_server; content:"|55 04 03|"; content:"|10|115f697a1698.bid"; distance:1; within:18; reference:url,sslbl.abuse.ch; classtype:trojan-activity; sid:2024686; rev:2;)```
 
 If you have a pcap containing the inbound certificate, you could potentially create the signature on the certificate providing that the signature has unique attributes and is not issued by a provider such as Lets Encrypt.  In the case above, the subject common name on the certificate is ‘115f697a1698 . bid’ meaning that we can write a signature based on that.  The bytes ’55 04 03’ identify the ‘id-at-commonName’ field so we can narrow down the signature search so that it does not search entire packets for a single domain.  The preceding byte |10| on the domain content match specifies the length of the domain in hex.  0x10 in decimal is 16, the length of the domain is 16 bytes.
 
 However, you will not always have the certificate to create such a signature.  Another method to detect on this would be to create a signature on the client request for the certificate.  A different example signature will be used for this.  This example signature is shown below.
 
->alert tls $HOME\_NET any -> $EXTERNAL\_NET any (msg:"ET TROJAN Observed Malicious Domain SSL Cert in SNI (JS_POWMET)"; flow:established,to\_server; content:"|16|"; depth:1; content:"|01|"; distance:4; content:"|00 00 0c|bogerando.ru"; fast\_pattern; reference:url,blog.trendmicro.com/trendlabs-security-intelligence/look-js\_powmet-completely-fileless-malware; reference:md5,31f83bf81b139bcc69e51df2c76a0bf2; classtype:trojan-activity; sid:2024512; rev:3;)
+```alert tls $HOME\_NET any -> $EXTERNAL\_NET any (msg:"ET TROJAN Observed Malicious Domain SSL Cert in SNI (JS_POWMET)"; flow:established,to\_server; content:"|16|"; depth:1; content:"|01|"; distance:4; content:"|00 00 0c|bogerando.ru"; fast\_pattern; reference:url,blog.trendmicro.com/trendlabs-security-intelligence/look-js\_powmet-completely-fileless-malware; reference:md5,31f83bf81b139bcc69e51df2c76a0bf2; classtype:trojan-activity; sid:2024512; rev:3;)```
 
 This type of SSL signature focuses on the Server Name subfield within the Server Name Indication Extension main field in a Client Hello request.  There are 3 content matches which do the following.
 
