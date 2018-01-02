@@ -349,7 +349,7 @@ Here, the http uri can only contain the "/" character due to the 'isdataat' chec
 
 ```content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4;```
 
-There are 3 content matches here but it is important to explain them together.  Since we are inspecting HTTP traffic, we have a lot more buffers to deal with compared to other protocols.  This specific snippet is identifying the break between the HTTP headers and the data segment of the HTTP request.  Suricata also has a buffer called _http\_client\_body_ which is the buffer name for the data segment of a HTTP request.  This signature does not use it and due to the age of the signature, I cannot tell you why this is the case.  From experience, it is possible that a Suricata engine was failing to identify the _http\_client\_body_ buffer.  The alternate method to writing this snippet would be to drop the content of |0d 0a 0d 0a| (hex for return (0x0d) and newline (0x0a)), which you will always see between HTTP headers and HTTP data.  We would then use _http\_client\_body_ as follows -- **content:!"|00 00 00 00|"; http\_client\_body; within:4; content:!"|FF FF FF FF|"; http\_client\_body; within:4;**
+There are 3 content matches here but it is important to explain them together.  Since we are inspecting HTTP traffic, we have a lot more buffers to deal with compared to other protocols.  This specific snippet is identifying the break between the HTTP headers and the data segment of the HTTP request.  Suricata also has a buffer called _http\_client\_body_ which is the buffer name for the data segment of a HTTP request.  This signature does not use it and due to the age of the signature, I cannot tell you why this is the case.  From experience, it is possible that a Suricata engine was failing to identify the _http\_client\_body_ buffer.  The alternate method to writing this snippet would be to drop the content of \|0d 0a 0d 0a\| (hex for return (0x0d) and newline (0x0a)), which you will always see between HTTP headers and HTTP data.  We would then use _http\_client\_body_ as follows -- **content:!"\|00 00 00 00\|"; http\_client\_body; within:4; content:!"\|FF FF FF FF\|"; http\_client\_body; within:4;**
 
 The other 2 content matches here are simply making sure that the first 4 bytes in the HTTP data segment do not match 0x00 or 0xFF.  Content negations can be made by adding '!' before we specify the data we are interested in negating, as demonstrated above.
 
@@ -358,11 +358,11 @@ The other 2 content matches here are simply making sure that the first 4 bytes i
 In our example, we have:
 `byte_extract:<bytes_to_extract>, <offset>, <name>, <relative>`
 
-Byte\_extract is a keyword for identifying bytes at a certain position for us to then save as a variable and use later in some checks/comparisons.  Our byte\_extract is relative so we will be working from the bytes after |0d 0a 0d 0a| which was our last positive match.  The signature is telling us to move forward 2 bytes, extract the 2 bytes in that position, and save them as 'Tinba.Pivot' for later use.  Below is a screenshot of the traffic that this is relating to.
+Byte\_extract is a keyword for identifying bytes at a certain position for us to then save as a variable and use later in some checks/comparisons.  Our byte\_extract is relative so we will be working from the bytes after \|0d 0a 0d 0a\| which was our last positive match.  The signature is telling us to move forward 2 bytes, extract the 2 bytes in that position, and save them as 'Tinba.Pivot' for later use.  Below is a screenshot of the traffic that this is relating to.
 
 ![memes4]({{ site.url }}/images/byte_extract.png)
 
-The bytes of interest in this case are |c9 9b| and these are the bytes we are extracting and saving.  At this point, I assume someone is asking why we cannot just write _content:"|c9 9b|"; offset:2; depth:2;_ into our rule and I will approach this shortly.
+The bytes of interest in this case are \|c9 9b\| and these are the bytes we are extracting and saving.  At this point, I assume someone is asking why we cannot just write _content:"\|c9 9b\|"; offset:2; depth:2;_ into our rule and I will approach this shortly.
 
 ```byte\_test:2,=,Tinba.Pivot,2,relative;```
 
@@ -370,13 +370,13 @@ Again, we have another byte\_* keyword.
 
 Our byte\_test keyword here includes the use of an operator.  You can find the table of supported operators [here](http://manual-snort-org.s3-website-us-east-1.amazonaws.com/node32.html#SECTION004531000000000000000) but I'll include it in this post for clarity.
 
-* <
-* >
-* <=
-* >=
-* =
-* &
-* ^
+* \<
+* \>
+* \<=
+* \>=
+* \=
+* \&
+* \^
 
 Now that we have our bytes extracted, we can test them!  Our use of byte\_test takes the following inputs:
 
@@ -392,7 +392,7 @@ A second byte\_test.  The difference here is that we are now moving relative to 
 
 ![memes6]({{ site.url }}/images/byte_test_1_final.png)
 
-Now, earlier on I mentioned that someone may be asking why we cannot write a static content match for |c9 9b| here.  The reason being is that these bytes change on each request.  The screenshots below show the HTTP data segment from 4 different HTTP requests yet still from the same sample.
+Now, earlier on I mentioned that someone may be asking why we cannot write a static content match for \|c9 9b\| here.  The reason being is that these bytes change on each request.  The screenshots below show the HTTP data segment from 4 different HTTP requests yet still from the same sample.
 
 ![memes7]({{ site.url }}/images/bytecmp1.png)
 
@@ -439,7 +439,7 @@ Immediately, we can see that this is watching for a packet from the server \($EX
 
 ```file\_data; content:"|64 b4 dc a4|"; within:4;```
 
-file\_data is another sticky buffer and is the equivalent of _http\_client\_body_ except this is used on traffic in the opposite direction.  For client -> server, _http\_client\_body_ is used and for server -> client, file\_data is used.  In this case, the first 4 bytes in the server response must contain |64 b4 dc a4|.
+file\_data is another sticky buffer and is the equivalent of _http\_client\_body_ except this is used on traffic in the opposite direction.  For client -> server, _http\_client\_body_ is used and for server -> client, file\_data is used.  In this case, the first 4 bytes in the server response must contain \|64 b4 dc a4\|.
 
 If you have stuck around for long enough to read up until this point, thank you, this post admittedly ending up being much longer than I intended.  I'll close out with... if you want to give writing your own signatures a go, I'd be happy to review them and provide feedback to you.  
 
