@@ -8,7 +8,6 @@ Recently, I was speaking to [Forgotten](https://twitter.com/forgottensec) and a 
 [Click to read Forgotten's Snort post](https://blog.forgottensec.com/snort-explained/).
 
 <br/>
-<br/>
 ### Suricata Documentation
 Documentation for Suricata is rather plentiful and it is recommended that you study this documentation or have it open for the remainder of this blog post to fully understand the signature dissection in later sections.  _Basic Suricata rule knowledge is assumed._
 
