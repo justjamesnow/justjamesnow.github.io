@@ -7,4 +7,4 @@ Apparently I need to use Markdown for this stuff too.
 
 An image?
 
-![alt text](https://github.com/sudosev/sudosev.github.io/blob/master/images/bytetest-contentlength.png "byte_test content-length")
+![useful image]({{ site.url }}/images/byte_extract_1.png)
