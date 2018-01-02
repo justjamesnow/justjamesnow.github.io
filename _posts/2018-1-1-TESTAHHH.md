@@ -355,12 +355,6 @@ The other 2 content matches here are simply making sure that the first 4 bytes i
 
 ```byte_extract:2,2,Tinba.Pivot,relative;```
 
-Before explaining this snippet, I will give the format for this keyword to hopefully make things clearer in the explanation
-
-`byte\_extract:<bytes\_to\_extract>, <offset>, <name> [, relative]
-        [, multiplier <multiplier value>][, <endian>][, string][, hex][, dec][, oct]
-        [, align <align value>][, dce][, bitmask <bitmask>];`
-
 In our example, we have:
 `byte_extract:<bytes_to_extract>, <offset>, <name>, <relative>`
 
@@ -372,11 +366,7 @@ The bytes of interest in this case are |c9 9b| and these are the bytes we are ex
 
 ```byte\_test:2,=,Tinba.Pivot,2,relative;```
 
-Again, we have another byte\_* keyword so again, here is the format for this keyword.
-
-`byte_test:<bytes to convert>, [!]<operator>, <value>, <offset>
-        [, relative][, <endian>][, string, <number type>][, dce]
-        [, bitmask <bitmask_value>];`
+Again, we have another byte\_* keyword.
 
 Our byte\_test keyword here includes the use of an operator.  You can find the table of supported operators [here](http://manual-snort-org.s3-website-us-east-1.amazonaws.com/node32.html#SECTION004531000000000000000) but I'll include it in this post for clarity.
 
