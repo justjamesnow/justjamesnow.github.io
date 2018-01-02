@@ -33,7 +33,7 @@ If neither of the above are applicable, a DNS signature would be the last resort
 The goal of a DNS lookup is to identify known malicious and/or suspicious domains that we do not want our systems communicating with or alternatively, they can be used to fill in timeline gaps on an infection chain timeline.  For example, more and more malware is using external services to identify the public IP address used by an infected system.  Creating a DNS lookup signature for these services will result in an alert prior to the main trojan signature alert.  Crafting DNS signatures is a relatively easy task but there are a couple of rules you must follow depending on the content you are matching against.
 
 #### Snort Example
->alert udp $HOME\_NET any -> any 53 (msg:"ET TROJAN Gootkit Domain (sslsecure256 .com in DNS Lookup)"; content:"|01|"; offset:2; depth:1; content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8; content:"|0c|sslsecure256|03|com|00|"; fast\_pattern; distance:0; nocase; classtype:trojan-activity; sid:90000000; rev:1;)
+```alert udp $HOME\_NET any -> any 53 (msg:"ET TROJAN Gootkit Domain (sslsecure256 .com in DNS Lookup)"; content:"|01|"; offset:2; depth:1; content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8; content:"|0c|sslsecure256|03|com|00|"; fast\_pattern; distance:0; nocase; classtype:trojan-activity; sid:90000000; rev:1;)```
 
 Shown above is a Snort DNS signature for a domain used in Gootkit campaigns.  Instead of trying to rush out an explanation, we will break down the signature into each individual content match after highlighting some key points regarding the signature header information.
 
@@ -41,13 +41,13 @@ Shown above is a Snort DNS signature for a domain used in Gootkit campaigns.  In
 2. The destination IP variable is not set, this is because we are considering IDS/IPS placement.  If you set this variable to $EXTERNAL\_NET, you may miss DNS lookups that first contact your internal DNS server depending on IDS/IPS placement
 3. The destination port is set to 53, the standard port for DNS.
 
->content:"|01|"; offset:2; depth:1;
+```content:"|01|"; offset:2; depth:1;```
 
 ![memes1]({{ site.url }}/images/dns1.png)
 
 Here we are trying to match 0x01 at position 2 (third byte) which indicates that this is a standard query. Positional modifiers are attached after the content has been defined and in this case, we jump 2 bytes from the beginning of the packet data (offset:2;) to check whether the 3rd byte (depth:1;) matches 0x01 (content:"|01|";).  The depth modifier ensures that the signature only checks the following byte after our jump.  If we were writing a signature where 0x01 can be in any of the 10 bytes that follow our jump, we'd write depth:10; however in this case, DNS packets follow the same structure making this a reliable method of identifying a DNS standard query.
 
->content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8;
+```content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8;```
 
 Here, we are attempting to detect the flags within a DNS packet.  There are 4 flags, each consisting of 2 bytes and they are Questions, Answer Resource Records (RRs), Authority RRs, and Additional RRs.  Since we have identified this as a standard query, Answer RRs, Authority RRs, and Additional RRs are irrelevant and only apply to query response packets resulting in their bytes remaining static (|00 00 00 00 00 00|).  'Questions' is the number of records (or domains, if you like) we are querying.  While this implies that we can query in multiples, such as an A record and an AAAA record in a single query, this is not the case, meaning our content match of |00 01| is very reliable.
 
@@ -55,7 +55,7 @@ Here, we are attempting to detect the flags within a DNS packet.  There are 4 fl
 
 Additionally, these flags appear 1 byte after our previous content match which we state in the rule with distance:1; (relative from the previous content match, jump forward 1 byte).  We then tell our signature that the content match must occur within the next 8 bytes (within:8;).
 
->content:"|0c|sslsecure256|03|com|00|"; fast\_pattern; distance:0;
+```content:"|0c|sslsecure256|03|com|00|"; fast\_pattern; distance:0;```
 
 Time for the juicy and relatively simple part.  We now want to state which domain we are looking for to make this signature fire.  The first byte you see here (0x0c > |0c|) defines the length of the domain which in our case, is 12 bytes.  We append this byte with the domain string.  The next singled out byte, |03|, states the length of the second level/top-level domain which in our case has a length of 3 (com).  A top-level domain of .info would be "|04|info", .io would be |02|io etc.  Finally, we specify the terminating null byte (|00|) that identifies the end of this 'buffer'.
 
@@ -66,11 +66,11 @@ The 'distance' positional modifier was briefly explained previously but it is im
 #### Suricata Example
 In the section above, I mentioned that Suricata supports 'dns' as a protocol so we will be working from signatures that follow this format, as shown below in the first signature that we will be dissecting.
 
->alert dns $HOME\_NET any -> $EXTERNAL\_NET any 53 (msg:"ET TROJAN Gootkit Domain (sslsecure256 .com in DNS Lookup)"; dns\_query; content:"sslsecure256.com"; nocase; isdataat:!1,relative; classtype:trojan-activity; sid:90000000; rev:1;)
+```alert dns $HOME\_NET any -> $EXTERNAL\_NET any 53 (msg:"ET TROJAN Gootkit Domain (sslsecure256 .com in DNS Lookup)"; dns\_query; content:"sslsecure256.com"; nocase; isdataat:!1,relative; classtype:trojan-activity; sid:90000000; rev:1;)```
 
 As before, we will break this down into each individual content match but as you may have already noticed, we only have 1 content match here.
 
->dns\_query; content:"sslsecure256.com"; nocase; isdataat:!1,relative;
+```dns\_query; content:"sslsecure256.com"; nocase; isdataat:!1,relative;```
 
 The first piece of this snippet is 'dns\_query' which is known as a sticky buffer.  When using a sticky buffer, all content matches within that buffer must be specified after the keyword. 
 
@@ -88,47 +88,49 @@ Going back to our example signature, isdataat:!1,relative; means we are making s
 
 
 ### Dissection 3: HTTP Botnet Check-in (Suricata v4.0 only)
->Signature 1
->>alert http $HOME\_NET any -> $EXTERNAL\_NET any (msg:"ET TROJAN Tinba Checkin 2"; flow:established,to\_server; content:"POST"; http\_method; content:"/"; http\_uri; isdataat:!1,relative; content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4; byte\_extract:2,2,Tinba.Pivot,relative; byte\_test:2,=,Tinba.Pivot,2,relative; byte\_test:2,!=,Tinba.Pivot,5,relative; http\_protocol; content:"HTTP/1.0"; http\_content\_len; byte\_test:0,>,99,0,string,dec; http\_header\_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast\_pattern; content:!"User-Agent"; content:!"Accept"; flowbits:set,ET.Tinba.Checkin; reference:md5,7af6d8de2759b8cc534ffd72fdd8a654; classtype:trojan-activity; sid:2020418; rev:5; metadata:created\_at 2015\_02\_12, updated\_at 2015\_02\_12;)
+```Signature 1
+alert http $HOME\_NET any -> $EXTERNAL\_NET any (msg:"ET TROJAN Tinba Checkin 2"; flow:established,to\_server; content:"POST"; http\_method; content:"/"; http\_uri; isdataat:!1,relative; content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4; byte\_extract:2,2,Tinba.Pivot,relative; byte\_test:2,=,Tinba.Pivot,2,relative; byte\_test:2,!=,Tinba.Pivot,5,relative; http\_protocol; content:"HTTP/1.0"; http\_content\_len; byte\_test:0,>,99,0,string,dec; http\_header\_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast\_pattern; content:!"User-Agent"; content:!"Accept"; flowbits:set,ET.Tinba.Checkin; reference:md5,7af6d8de2759b8cc534ffd72fdd8a654; classtype:trojan-activity; sid:2020418; rev:5; metadata:created\_at 2015\_02\_12, updated\_at 2015\_02\_12;)
+```
 
->Signature 2
->>alert http $EXTERNAL\_NET any -> $HOME\_NET any (msg:"ET TROJAN Tinba Server Response"; flow:established,to\_client; flowbits:isset,ET.Tinba.Checkin; file\_data; content:"|64 b4 dc a4|"; within:4; reference:md5,1e644fe146f62bd2fc585b8df6712ff6; classtype:trojan-activity; sid:2019169; rev:4; metadata:created\_at 2014\_09\_12, updated\_at 2014\_09\_12;)
+```Signature 2
+alert http $EXTERNAL\_NET any -> $HOME\_NET any (msg:"ET TROJAN Tinba Server Response"; flow:established,to\_client; flowbits:isset,ET.Tinba.Checkin; file\_data; content:"|64 b4 dc a4|"; within:4; reference:md5,1e644fe146f62bd2fc585b8df6712ff6; classtype:trojan-activity; sid:2019169; rev:4; metadata:created\_at 2014\_09\_12, updated\_at 2014\_09\_12;)
+```
 
 Rule pairs like this may appear intimidating to begin with, so let's dissect this signature in full (including rule header) to fully understand every aspect, starting with 'Signature 1'.
 
->http $HOME\_NET any -> $EXTERNAL\_NET any
+```http $HOME\_NET any -> $EXTERNAL\_NET any```
 
 Traffic must be HTTP and must be sourcing from a host within the $HOME\_NET variable to a host in the $EXTERNAL\_NET variable.  Source and destination ports are irrelevant here and due to the protocol being set as 'http', Suricata is already aware that we are inspecting HTTP traffic which applies several rules and behaviors to the engine.
 
->msg:"ET TROJAN Tinba Checkin 2"
+```msg:"ET TROJAN Tinba Checkin 2"```
 
 Signature messages can technically be anything.  This specific rule is part of the Emerging Threats project and is categorized as a trojan, hence 'ET TROJAN'.  The malware family is Tinba which is a banking trojan and the event/action that the rule is looking for is a command and control check-in.  ET signatures follow the same format for trojan rules which is "ET(PRO) <CATEGORY> <MALWARE FAMILY> <EVENT/ACTION>".
 
->flow:established,to\_server;
+```flow:established,to\_server;```
 
 Pretty simple one here, we are checking the 3-way handshake to the server in $EXTERNAL\_NET.
 
->content:"POST"; http\_method;
+```content:"POST"; http\_method;```
 
 To immediately begin narrowing down the traffic that our signature needs to look at, we specify that this traffic should be a POST request.  As a side note here, if this was Snort and this HTTP traffic was on a non-standard HTTP port, we would not be able to use http\_* keywords because Snort is not protocol aware.  The Snort equivalent here is **content:"POST"; depth:4;**, unless this HTTP traffic is on a port specified in your $http\_PORTS variable.
 
->content:"/"; http\_uri; isdataat:!1,relative;
+```content:"/"; http\_uri; isdataat:!1,relative;```
 
 Here, the http uri can only contain the "/" character due to the 'isdataat' check that follows (explained previously).  Alternatively, this can be written as _urilen:1;_ but that single character can be anything.  It's important to note that something like _urilen:1; content:"/"; http\_uri; isdataat:!1,relative;_ is redundant because we are performing multiple checks for the same thing.
 
->content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4;
+```content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4;```
 
 There are 3 content matches here but it is important to explain them together.  Since we are inspecting HTTP traffic, we have a lot more buffers to deal with compared to other protocols.  This specific snippet is identifying the break between the HTTP headers and the data segment of the HTTP request.  Suricata also has a buffer called _http\_client\_body_ which is the buffer name for the data segment of a HTTP request.  This signature does not use it and due to the age of the signature, I cannot tell you why this is the case.  From experience, it is possible that a Suricata engine was failing to identify the _http\_client\_body_ buffer.  The alternate method to writing this snippet would be to drop the content of |0d 0a 0d 0a| (hex for return (0x0d) and newline (0x0a)), which you will always see between HTTP headers and HTTP data.  We would then use _http\_client\_body_ as follows -- **content:!"|00 00 00 00|"; http\_client\_body; within:4; content:!"|FF FF FF FF|"; http\_client\_body; within:4;**
 
 The other 2 content matches here are simply making sure that the first 4 bytes in the HTTP data segment do not match 0x00 or 0xFF.  Content negations can be made by adding '!' before we specify the data we are interested in negating, as demonstrated above.
 
->byte_extract:2,2,Tinba.Pivot,relative;
+```byte_extract:2,2,Tinba.Pivot,relative;```
 
 Before explaining this snippet, I will give the format for this keyword to hopefully make things clearer in the explanation
 
->byte\_extract:<bytes\_to\_extract>, <offset>, <name> [, relative]
+`byte\_extract:<bytes\_to\_extract>, <offset>, <name> [, relative]
         [, multiplier <multiplier value>][, <endian>][, string][, hex][, dec][, oct]
-        [, align <align value>][, dce][, bitmask <bitmask>];
+        [, align <align value>][, dce][, bitmask <bitmask>];`
 
 In our example, we have:
 `byte_extract:<bytes_to_extract>, <offset>, <name>, <relative>`
@@ -139,13 +141,13 @@ Byte\_extract is a keyword for identifying bytes at a certain position for us to
 
 The bytes of interest in this case are |c9 9b| and these are the bytes we are extracting and saving.  At this point, I assume someone is asking why we cannot just write _content:"|c9 9b|"; offset:2; depth:2;_ into our rule and I will approach this shortly.
 
->byte\_test:2,=,Tinba.Pivot,2,relative;
+```byte\_test:2,=,Tinba.Pivot,2,relative;```
 
 Again, we have another byte\_* keyword so again, here is the format for this keyword.
 
->byte_test:<bytes to convert>, [!]<operator>, <value>, <offset>
+`byte_test:<bytes to convert>, [!]<operator>, <value>, <offset>
         [, relative][, <endian>][, string, <number type>][, dce]
-        [, bitmask <bitmask_value>];
+        [, bitmask <bitmask_value>];`
 
 Our byte\_test keyword here includes the use of an operator.  You can find the table of supported operators [here](http://manual-snort-org.s3-website-us-east-1.amazonaws.com/node32.html#SECTION004531000000000000000) but I'll include it in this post for clarity.
 
@@ -165,7 +167,7 @@ We are now telling byte\_test that we are dealing with 2 bytes (bytes to convert
 
 ![memes5]({{ site.url }}/images/byte_test_1.png)
 
->byte\_test:2,!=,Tinba.Pivot,5,relative;
+```byte\_test:2,!=,Tinba.Pivot,5,relative;```
 
 A second byte\_test.  The difference here is that we are now moving relative to the byte\_test that we have just completed and instead of moving forward by 2 bytes, we are moving forward by 5 bytes (offset is set to 5 here), and we are looking to make sure that our extracted bytes are NOT equal to the bytes in these positions, as shown in the below screenshot.
 
@@ -183,11 +185,11 @@ Now, earlier on I mentioned that someone may be asking why we cannot write a sta
 
 This is a prime example of how to use byte\_* operations to get around traffic like this where most of the data appears to be encoded/encrypted.
 
->http\_protocol; content:"HTTP/1.0";
+```http\_protocol; content:"HTTP/1.0";```
 
 Another useful http keyword is _http\_protocol_ which allows us to state what version of HTTP we expect to see in the traffic.  This is another sticky buffer, which is why we state our content afterwards instead of before.  It is important to remember which keywords are sticky buffers or else your signature will error.  You can read about Suricata http keywords [here](http://suricata.readthedocs.io/en/latest/rules/http-keywords.html).
 
->http\_content\_len; byte\_test:0,>,99,0,string,dec;
+```http\_content\_len; byte\_test:0,>,99,0,string,dec;```
 
 Another http keyword, another sticky buffer.  We also have another byte\_test here.  Since Content-Length is a variable length and the packets analyzed did not remain a static size, but they were all greater than X in size, it makes sense to byte\_test this value.  Our inputs for this byte\_test are as follows:
 `byte_test:<bytes to convert>, <operator>, <value>, <offset>, <string>, <number type>`
@@ -200,11 +202,11 @@ Our 'bytes to convert' is 0 here because we do not need to pull a value from any
 
 Our 'string' input tells the byte\_test to store data as a string and the input that follows, 'dec', tells the byte\_test to convert our string to decimal so that we can compare it to our value, which is a decimal.  Finally, the byte\_test will check to see if the data in this buffer, converted to decimal, is greater than 99.  As you can see in the screenshot, one of our sample packets showed a Content-Length of 157 meaning the byte\_test returns true.
 
->http\_header\_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast\_pattern; content:!"User-Agent"; content:!"Accept";
+```http\_header\_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast\_pattern; content:!"User-Agent"; content:!"Accept";```
 
 Sticky buffers for everybody!  In this instance, we are using _http\_header\_names_ to check whether certain HTTP headers and to negate some headers that are typically common in HTTP traffic.  Negating HTTP headers is a great way to cut false positive potential right off the bat.  In this snippet, we are checking that the Host and Content-Length headers are present.  The screenshot from our byte\_test explanation shows that we do indeed have a Host and Content-Length header but, no others.  There is no User-Agent header or Accept header which is always suspicious, so we negate those header which tells our signature not to fire if User-Agent or Accept is present.
 
->flowbits:set,ET.Tinba.Checkin;
+```flowbits:set,ET.Tinba.Checkin;```
 
 And finally, we have flowbits.  There are several use cases for flowbits, whether you are using them to reduce the potential for false positives or a single signature is not enough to detect the traffic you are analyzing.  Flowbits take 2 inputs unless you are specifiying 'noalert' which will prevent the signature from firing, regardless of whether it matches or not.  Using noalert is rather common and is useful to reduce noise on SIEMs, especially if your use case for flowbits is to reduce flowbits (if your single signature was causing too many FPs, why continue to allow it to alert?).
 
@@ -212,11 +214,11 @@ In this example, we are setting the flowbits with 'set' and naming it 'ET.Tinba.
 
 This brings us onto signature 2 in this pair.
 
->alert http $EXTERNAL\_NET any -> $HOME\_NET any (msg:"ET TROJAN Tinba Server Response"; flow:established,to\_client; flowbits:isset,ET.Tinba.Checkin; file\_data; content:"|64 b4 dc a4|"; within:4; reference:md5,1e644fe146f62bd2fc585b8df6712ff6; classtype:trojan-activity; sid:2019169; rev:4; metadata:created\_at 2014\_09\_12, updated\_at 2014\_09\_12;)
+```alert http $EXTERNAL\_NET any -> $HOME\_NET any (msg:"ET TROJAN Tinba Server Response"; flow:established,to\_client; flowbits:isset,ET.Tinba.Checkin; file\_data; content:"|64 b4 dc a4|"; within:4; reference:md5,1e644fe146f62bd2fc585b8df6712ff6; classtype:trojan-activity; sid:2019169; rev:4; metadata:created\_at 2014\_09\_12, updated\_at 2014\_09\_12;)```
 
 Immediately, we can see that this is watching for a packet from the server ($EXTERNAL\_NET) to the infected host ($HOME\_NET) and we notice that flowbits are defined as 'isset,ET.Tinba.Checkin' which states that the conditions in our previous signature must have been met before this signature becomes active.
 
->file\_data; content:"|64 b4 dc a4|"; within:4;
+```file\_data; content:"|64 b4 dc a4|"; within:4;```
 
 file\_data is another sticky buffer and is the equivalent of _http\_client\_body_ except this is used on traffic in the opposite direction.  For client -> server, _http\_client\_body_ is used and for server -> client, file\_data is used.  In this case, the first 4 bytes in the server response must contain |64 b4 dc a4|.
 
