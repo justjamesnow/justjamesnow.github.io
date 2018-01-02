@@ -89,14 +89,10 @@ Going back to our example signature, isdataat:!1,relative; means we are making s
 
 ### Dissection 3: HTTP Botnet Check-in (Suricata v4.0 only)
 Signature 1
-```
-alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Tinba Checkin 2"; flow:established,to_server; content:"POST"; http_method; content:"/"; http_uri; isdataat:!1,relative; content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4; byte_extract:2,2,Tinba.Pivot,relative; byte_test:2,=,Tinba.Pivot,2,relative; byte_test:2,!=,Tinba.Pivot,5,relative; http_protocol; content:"HTTP/1.0"; http_content_len; byte_test:0,>,99,0,string,dec; http_header_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast_pattern; content:!"User-Agent"; content:!"Accept"; flowbits:set,ET.Tinba.Checkin; reference:md5,7af6d8de2759b8cc534ffd72fdd8a654; classtype:trojan-activity; sid:2020418; rev:5; metadata:created_at 2015_02_12, updated_at 2015_02_12;)
-```
+`alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Tinba Checkin 2"; flow:established,to_server; content:"POST"; http_method; content:"/"; http_uri; isdataat:!1,relative; content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4; byte_extract:2,2,Tinba.Pivot,relative; byte_test:2,=,Tinba.Pivot,2,relative; byte_test:2,!=,Tinba.Pivot,5,relative; http_protocol; content:"HTTP/1.0"; http_content_len; byte_test:0,>,99,0,string,dec; http_header_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast_pattern; content:!"User-Agent"; content:!"Accept"; flowbits:set,ET.Tinba.Checkin; reference:md5,7af6d8de2759b8cc534ffd72fdd8a654; classtype:trojan-activity; sid:2020418; rev:5; metadata:created_at 2015_02_12, updated_at 2015_02_12;)`
 
 Signature 2
-```
-alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"ET TROJAN Tinba Server Response"; flow:established,to_client; flowbits:isset,ET.Tinba.Checkin; file_data; content:"|64 b4 dc a4|"; within:4; reference:md5,1e644fe146f62bd2fc585b8df6712ff6; classtype:trojan-activity; sid:2019169; rev:4; metadata:created_at 2014_09_12, updated_at 2014_09_12;)
-```
+`alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"ET TROJAN Tinba Server Response"; flow:established,to_client; flowbits:isset,ET.Tinba.Checkin; file_data; content:"|64 b4 dc a4|"; within:4; reference:md5,1e644fe146f62bd2fc585b8df6712ff6; classtype:trojan-activity; sid:2019169; rev:4; metadata:created_at 2014_09_12, updated_at 2014_09_12;)`
 
 Rule pairs like this may appear intimidating to begin with, so let's dissect this signature in full (including rule header) to fully understand every aspect, starting with 'Signature 1'.
 
@@ -158,8 +154,8 @@ Our byte\_test keyword here includes the use of an operator.  You can find the t
 * \<=
 * \>=
 * \=
-* \&
-* \^
+* &
+* ^
 
 Now that we have our bytes extracted, we can test them!  Our use of byte\_test takes the following inputs:
 
