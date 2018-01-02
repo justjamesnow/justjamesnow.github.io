@@ -57,7 +57,7 @@ Additionally, these flags appear 1 byte after our previous content match which w
 
 ```content:"|0c|sslsecure256|03|com|00|"; fast_pattern; distance:0;```
 
-Time for the juicy and relatively simple part.  We now want to state which domain we are looking for to make this signature fire.  The first byte you see here (0x0c > \|0c\|) defines the length of the domain which in our case, is 12 bytes.  We append this byte with the domain string.  The next singled out byte, |03|, states the length of the second level/top-level domain which in our case has a length of 3 (com).  A top-level domain of .info would be "\|04\|info", .io would be \|02\|io etc.  Finally, we specify the terminating null byte (\|00\|) that identifies the end of this 'buffer'.
+Time for the juicy and relatively simple part.  We now want to state which domain we are looking for to make this signature fire.  The first byte you see here (0x0c > \|0c\|) defines the length of the domain which in our case, is 12 bytes.  We append this byte with the domain string.  The next singled out byte, \|03\|, states the length of the second level/top-level domain which in our case has a length of 3 (com).  A top-level domain of .info would be "\|04\|info", .io would be \|02\|io etc.  Finally, we specify the terminating null byte (\|00\|) that identifies the end of this 'buffer'.
 
 Since the juicy/unique part of our DNS signature is the domain that we are looking to detect, we will add our fast\_pattern match here.  Fast\_pattern is used to improve the efficiency of a rule and should always be applied to your most unique piece of content.  If you do not specify a fast\_pattern in Suricata, the engine will specify a fast\_pattern according to its [Multi Pattern Matcher algorithm](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_fast\_pattern_Determination_Explained).
 
@@ -88,11 +88,13 @@ Going back to our example signature, isdataat:!1,relative; means we are making s
 
 
 ### Dissection 3: HTTP Botnet Check-in (Suricata v4.0 only)
-```Signature 1
+Signature 1
+```
 alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Tinba Checkin 2"; flow:established,to_server; content:"POST"; http_method; content:"/"; http_uri; isdataat:!1,relative; content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4; byte_extract:2,2,Tinba.Pivot,relative; byte_test:2,=,Tinba.Pivot,2,relative; byte_test:2,!=,Tinba.Pivot,5,relative; http_protocol; content:"HTTP/1.0"; http_content_len; byte_test:0,>,99,0,string,dec; http_header_names; content:"|0d 0a|Host|0d 0a|Content-Length|0d 0a 0d 0a|"; fast_pattern; content:!"User-Agent"; content:!"Accept"; flowbits:set,ET.Tinba.Checkin; reference:md5,7af6d8de2759b8cc534ffd72fdd8a654; classtype:trojan-activity; sid:2020418; rev:5; metadata:created_at 2015_02_12, updated_at 2015_02_12;)
 ```
 
-```Signature 2
+Signature 2
+```
 alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"ET TROJAN Tinba Server Response"; flow:established,to_client; flowbits:isset,ET.Tinba.Checkin; file_data; content:"|64 b4 dc a4|"; within:4; reference:md5,1e644fe146f62bd2fc585b8df6712ff6; classtype:trojan-activity; sid:2019169; rev:4; metadata:created_at 2014_09_12, updated_at 2014_09_12;)
 ```
 
@@ -120,7 +122,7 @@ Here, the http uri can only contain the "/" character due to the 'isdataat' chec
 
 ```content:"|0d 0a 0d 0a|"; content:!"|00 00 00 00|"; within:4; content:!"|FF FF FF FF|"; within:4;```
 
-There are 3 content matches here but it is important to explain them together.  Since we are inspecting HTTP traffic, we have a lot more buffers to deal with compared to other protocols.  This specific snippet is identifying the break between the HTTP headers and the data segment of the HTTP request.  Suricata also has a buffer called _http\_client\_body_ which is the buffer name for the data segment of a HTTP request.  This signature does not use it and due to the age of the signature, I cannot tell you why this is the case.  From experience, it is possible that a Suricata engine was failing to identify the _http\_client\_body_ buffer.  The alternate method to writing this snippet would be to drop the content of |0d 0a 0d 0a| (hex for return (0x0d) and newline (0x0a)), which you will always see between HTTP headers and HTTP data.  We would then use _http\_client\_body_ as follows -- **content:!"\|00 00 00 00\|"; http\_client\_body; within:4; content:!"\|FF FF FF FF\|"; http\_client\_body; within:4;**
+There are 3 content matches here but it is important to explain them together.  Since we are inspecting HTTP traffic, we have a lot more buffers to deal with compared to other protocols.  This specific snippet is identifying the break between the HTTP headers and the data segment of the HTTP request.  Suricata also has a buffer called _http\_client\_body_ which is the buffer name for the data segment of a HTTP request.  This signature does not use it and due to the age of the signature, I cannot tell you why this is the case.  From experience, it is possible that a Suricata engine was failing to identify the _http\_client\_body_ buffer.  The alternate method to writing this snippet would be to drop the content of \|0d 0a 0d 0a\| (hex for return (0x0d) and newline (0x0a)), which you will always see between HTTP headers and HTTP data.  We would then use _http\_client\_body_ as follows -- **content:!"\|00 00 00 00\|"; http\_client\_body; within:4; content:!"\|FF FF FF FF\|"; http\_client\_body; within:4;**
 
 The other 2 content matches here are simply making sure that the first 4 bytes in the HTTP data segment do not match 0x00 or 0xFF.  Content negations can be made by adding '!' before we specify the data we are interested in negating, as demonstrated above.
 
@@ -173,7 +175,7 @@ A second byte\_test.  The difference here is that we are now moving relative to 
 
 ![memes6]({{ site.url }}/images/byte_test_1_final.png)
 
-Now, earlier on I mentioned that someone may be asking why we cannot write a static content match for |c9 9b| here.  The reason being is that these bytes change on each request.  The screenshots below show the HTTP data segment from 4 different HTTP requests yet still from the same sample.
+Now, earlier on I mentioned that someone may be asking why we cannot write a static content match for \|c9 9b\| here.  The reason being is that these bytes change on each request.  The screenshots below show the HTTP data segment from 4 different HTTP requests yet still from the same sample.
 
 ![memes7]({{ site.url }}/images/bytecmp1.png)
 
