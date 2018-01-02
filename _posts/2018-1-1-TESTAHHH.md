@@ -49,7 +49,7 @@ Here we are trying to match 0x01 at position 2 (third byte) which indicates that
 
 ```content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8;```
 
-Here, we are attempting to detect the flags within a DNS packet.  There are 4 flags, each consisting of 2 bytes and they are Questions, Answer Resource Records (RRs), Authority RRs, and Additional RRs.  Since we have identified this as a standard query, Answer RRs, Authority RRs, and Additional RRs are irrelevant and only apply to query response packets resulting in their bytes remaining static (\|00 00 00 00 00 00\|).  'Questions' is the number of records (or domains, if you like) we are querying.  While this implies that we can query in multiples, such as an A record and an AAAA record in a single query, this is not the case, meaning our content match of |00 01| is very reliable.
+Here, we are attempting to detect the flags within a DNS packet.  There are 4 flags, each consisting of 2 bytes and they are Questions, Answer Resource Records (RRs), Authority RRs, and Additional RRs.  Since we have identified this as a standard query, Answer RRs, Authority RRs, and Additional RRs are irrelevant and only apply to query response packets resulting in their bytes remaining static (\|00 00 00 00 00 00\|).  'Questions' is the number of records (or domains, if you like) we are querying.  While this implies that we can query in multiples, such as an A record and an AAAA record in a single query, this is not the case, meaning our content match of \|00 01\| is very reliable.
 
 ![memes2]({{ site.url }}/images/dns2.png)
 
