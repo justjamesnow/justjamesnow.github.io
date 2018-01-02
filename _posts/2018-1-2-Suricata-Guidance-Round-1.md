@@ -7,7 +7,8 @@ Recently, I was speaking to [Forgotten](https://twitter.com/forgottensec) and a 
 
 [Click to read Forgotten's Snort post](https://blog.forgottensec.com/snort-explained/).
 
-
+<br/>
+<br/>
 ### Suricata Documentation
 Documentation for Suricata is rather plentiful and it is recommended that you study this documentation or have it open for the remainder of this blog post to fully understand the signature dissection in later sections.  _Basic Suricata rule knowledge is assumed._
 
@@ -29,7 +30,8 @@ Identify the type of TLS packet, this is always the first byte in the packet.  W
 
 If neither of the above are applicable, a DNS signature would be the last resort.
 
-
+<br/>
+<br/>
 ### Dissection 2: DNS Lookups
 The goal of a DNS lookup is to identify known malicious and/or suspicious domains that we do not want our systems communicating with or alternatively, they can be used to fill in timeline gaps on an infection chain timeline.  For example, more and more malware is using external services to identify the public IP address used by an infected system.  Creating a DNS lookup signature for these services will result in an alert prior to the main trojan signature alert.  Crafting DNS signatures is a relatively easy task but there are a couple of rules you must follow depending on the content you are matching against.
 
@@ -47,7 +49,8 @@ Shown above is a Snort DNS signature for a domain used in Gootkit campaigns.  In
 ![memes1]({{ site.url }}/images/dns1.png)
 
 Here we are trying to match 0x01 at position 2 (third byte) which indicates that this is a standard query. Positional modifiers are attached after the content has been defined and in this case, we jump 2 bytes from the beginning of the packet data \(offset:2;) to check whether the 3rd byte (depth:1;) matches 0x01 (content:"\|01\|";).  The depth modifier ensures that the signature only checks the following byte after our jump.  If we were writing a signature where 0x01 can be in any of the 10 bytes that follow our jump, we'd write depth:10; however in this case, DNS packets follow the same structure making this a reliable method of identifying a DNS standard query.
-
+<br/>
+<br/>
 ```content:"|00 01 00 00 00 00 00 00|"; distance:1; within:8;```
 
 Here, we are attempting to detect the flags within a DNS packet.  There are 4 flags, each consisting of 2 bytes and they are Questions, Answer Resource Records (RRs), Authority RRs, and Additional RRs.  Since we have identified this as a standard query, Answer RRs, Authority RRs, and Additional RRs are irrelevant and only apply to query response packets resulting in their bytes remaining static (\|00 00 00 00 00 00\|).  'Questions' is the number of records (or domains, if you like) we are querying.  While this implies that we can query in multiples, such as an A record and an AAAA record in a single query, this is not the case, meaning our content match of \|00 01\| is very reliable.
@@ -55,7 +58,8 @@ Here, we are attempting to detect the flags within a DNS packet.  There are 4 fl
 ![memes2]({{ site.url }}/images/dns2.png)
 
 Additionally, these flags appear 1 byte after our previous content match which we state in the rule with distance:1; (relative from the previous content match, jump forward 1 byte).  We then tell our signature that the content match must occur within the next 8 bytes \(within:8;).
-
+<br/>
+<br/>
 ```content:"|0c|sslsecure256|03|com|00|"; fast_pattern; distance:0;```
 
 Time for the juicy and relatively simple part.  We now want to state which domain we are looking for to make this signature fire.  The first byte you see here (0x0c > \|0c\|) defines the length of the domain which in our case, is 12 bytes.  We append this byte with the domain string.  The next singled out byte, \|03\|, states the length of the second level/top-level domain which in our case has a length of 3 (com).  A top-level domain of .info would be "\|04\|info", .io would be \|02\|io etc.  Finally, we specify the terminating null byte (\|00\|) that identifies the end of this 'buffer'.
