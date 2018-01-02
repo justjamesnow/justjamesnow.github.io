@@ -6,13 +6,14 @@ title: Suricata Guidance - Round 1!
 Recently, I was speaking to [Forgotten](https://twitter.com/forgottensec) and a couple of others regarding the information and guidance available for truly understanding Snort/Suricata signatures.  While documentation and the odd blog post does exist, the more advanced features and lack of context for signatures can become overwhelming rather quickly without guidance.  This post aims to dissect Suricata signatures of various difficulties with explanation of how the signature works.
 
 [Click to read Forgotten's Snort post](https://blog.forgottensec.com/snort-explained/).
-
+\
+\
 ### Suricata Documentation
 Documentation for Suricata is rather plentiful and it is recommended that you study this documentation or have it open for the remainder of this blog post to fully understand the signature dissection in later sections.  _Basic Suricata rule knowledge is assumed._
 
 [Suricata Rule Documentation](http://suricata.readthedocs.io/en/latest/rules/index.html)
-
-
+\
+\
 ### Dissection 1: SSL/TLS Certificate Signatures
 ```alert tls $EXTERNAL_NET 443 -> $HOME_NET any (msg:"ET TROJAN ABUSE.CH SSL Fingerprint Blacklist Malicious SSL Certificate Detected (ZeusPanda MITM)"; flow:established,from_server; content:"|55 04 03|"; content:"|10|115f697a1698.bid"; distance:1; within:18; reference:url,sslbl.abuse.ch; classtype:trojan-activity; sid:2024686; rev:2;)```
 
