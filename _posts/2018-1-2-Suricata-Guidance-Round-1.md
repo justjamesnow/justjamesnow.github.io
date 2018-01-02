@@ -13,7 +13,6 @@ Documentation for Suricata is rather plentiful and it is recommended that you st
 
 [Suricata Rule Documentation](http://suricata.readthedocs.io/en/latest/rules/index.html)
 <br/>
-test
 <br/>
 ### Dissection 1: SSL/TLS Certificate Signatures
 ```alert tls $EXTERNAL_NET 443 -> $HOME_NET any (msg:"ET TROJAN ABUSE.CH SSL Fingerprint Blacklist Malicious SSL Certificate Detected (ZeusPanda MITM)"; flow:established,from_server; content:"|55 04 03|"; content:"|10|115f697a1698.bid"; distance:1; within:18; reference:url,sslbl.abuse.ch; classtype:trojan-activity; sid:2024686; rev:2;)```
