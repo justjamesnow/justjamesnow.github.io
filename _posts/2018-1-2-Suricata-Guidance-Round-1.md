@@ -135,7 +135,7 @@ In our example, we have:
 
 Byte\_extract is a keyword for identifying bytes at a certain position for us to then save as a variable and use later in some checks/comparisons.  Our byte\_extract is relative so we will be working from the bytes after \|0d 0a 0d 0a\| which was our last positive match.  The signature is telling us to move forward 2 bytes, extract the 2 bytes in that position, and save them as 'Tinba.Pivot' for later use.  Below is a screenshot of the traffic that this is relating to.
 
-![memes4]({{ site.url }}/images/byte_extract.png)
+![memes4]({{ site.url }}/images/byte_extract_1.png)
 
 The bytes of interest in this case are \|c9 9b\| and these are the bytes we are extracting and saving.  At this point, I assume someone is asking why we cannot just write _content:"\|c9 9b\|"; offset:2; depth:2;_ into our rule and I will approach this shortly.
 
