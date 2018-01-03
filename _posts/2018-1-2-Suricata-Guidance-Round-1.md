@@ -170,6 +170,12 @@ We are now telling byte\_test that we are dealing with 2 bytes (bytes to convert
 
 ![memes5]({{ site.url }}/images/byte_test_1.png)
 
+Another perfect use case for byte\_test is if you are detecting a specific protocol that has X flag at Y offset and it can only be certain values.  For example, this example flag is at offset 5 and can only be 0x00, 0x01, 0x02, or 0x03.  Anything other than those values are not accepted.
+
+```byte_test:0,<=,0x03,5;```
+
+Our byte\_test above shows that we are looking at offset 5 and this value has to be equal to 0x03 or lower (0x00, 0x01, 0x02) meaning that all of the possible flags have been accounted for.  This is a great way to ensure that you remain accurate in detecting the specific protocol and prevents false positives.
+
 ```byte_test:2,!=,Tinba.Pivot,5,relative;```
 
 A second byte\_test.  The difference here is that we are now moving relative to the byte\_test that we have just completed and instead of moving forward by 2 bytes, we are moving forward by 5 bytes (offset is set to 5 here), and we are looking to make sure that our extracted bytes are NOT equal to the bytes in these positions, as shown in the below screenshot.
